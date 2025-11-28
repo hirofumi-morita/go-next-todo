@@ -68,9 +68,36 @@ A full-stack TODO management application with user authentication and admin user
 - `SESSION_SECRET` - JWT signing secret (required)
 
 ## Running the Application
+
+### On Replit
 The application runs two services:
 1. Go backend API on port 8080
 2. Next.js frontend on port 5000
+
+### Docker (Local Development)
+```bash
+# Production build
+docker-compose up --build
+
+# Development with hot-reload
+docker-compose -f docker-compose.dev.yml up --build
+```
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8080
+
+## Project Structure (Docker)
+```
+/
+├── docker/
+│   ├── backend.Dockerfile      # Production Go build
+│   ├── frontend.Dockerfile     # Production Next.js build
+│   ├── backend.dev.Dockerfile  # Dev build with Air hot-reload
+│   ├── frontend.dev.Dockerfile # Dev build with hot-reload
+│   └── README.md              # Docker setup instructions
+├── docker-compose.yml          # Production compose
+├── docker-compose.dev.yml      # Development compose
+└── .env.example               # Environment variable template
+```
 
 ## Admin Bootstrap
 The first user to register automatically receives admin privileges.
@@ -78,3 +105,4 @@ The first user to register automatically receives admin privileges.
 ## Recent Changes
 - Initial project setup (November 28, 2025)
 - Added security improvements: SESSION_SECRET validation, JWT signing method verification
+- Added Docker Compose support for local development (November 28, 2025)
