@@ -29,6 +29,7 @@ A full-stack TODO management application with user authentication and admin user
    - Email and password authentication
    - JWT token-based session management
    - Password hashing with bcrypt
+   - First registered user automatically becomes admin
 
 2. **TODO Management (CRUD)**
    - Create, Read, Update, Delete TODOs
@@ -64,12 +65,16 @@ A full-stack TODO management application with user authentication and admin user
 
 ## Environment Variables
 - `DATABASE_URL` - PostgreSQL connection string
-- `SESSION_SECRET` - JWT signing secret
+- `SESSION_SECRET` - JWT signing secret (required)
 
 ## Running the Application
 The application runs two services:
 1. Go backend API on port 8080
 2. Next.js frontend on port 5000
 
+## Admin Bootstrap
+The first user to register automatically receives admin privileges.
+
 ## Recent Changes
 - Initial project setup (November 28, 2025)
+- Added security improvements: SESSION_SECRET validation, JWT signing method verification
