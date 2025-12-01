@@ -1,12 +1,17 @@
 FROM golang:1.25-alpine AS builder
 
+# Install gqlgen for GraphQL code generation
+RUN go install github.com/99designs/gqlgen@latest
+
 WORKDIR /app
 
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 
 COPY backend/ .
-RUN CGO_ENABLED=0 GOOS=linux go build -o main .
+
+# Generate GraphQL code and build
+RUN go generate ./... && CGO_ENABLED=0 GOOS=linux go build -o main .
 
 FROM alpine:latest
 

@@ -44,6 +44,23 @@ docker-compose down -v
 docker-compose -f docker-compose.dev.yml up --build
 ```
 
+### GraphQL開発
+
+バックエンドはgqlgenを使用したGraphQLレイヤーを持っています。
+
+**スキーマの変更時：**
+開発モードでは、`backend/graph/schema.graphqls`を編集すると、Airが自動的にコード再生成とリビルドを行います。
+
+**手動でコード生成を実行する場合：**
+```bash
+docker-compose -f docker-compose.dev.yml exec backend go generate ./...
+```
+
+**GraphQL構成ファイル：**
+- `backend/graph/schema.graphqls` - GraphQLスキーマ定義
+- `backend/gqlgen.yml` - gqlgen設定ファイル
+- `backend/graph/schema.resolvers.go` - リゾルバー実装
+
 ## トラブルシューティング
 
 ### ポートが使用中の場合

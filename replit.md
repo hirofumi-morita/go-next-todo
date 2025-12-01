@@ -125,3 +125,4 @@ REST Handler → GraphQL Client → GraphQL Resolver → GORM → PostgreSQL
 - Added security improvements: SESSION_SECRET validation, JWT signing method verification
 - Added Docker Compose support for local development (November 28, 2025)
 - Added GraphQL layer (gqlgen) for database operations (December 1, 2025)
+- Updated Docker Compose to support GraphQL code generation (December 1, 2025)
