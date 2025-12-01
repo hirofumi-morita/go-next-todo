@@ -1,0 +1,61 @@
+scalar Time
+
+type User {
+  id: ID!
+  email: String!
+  isAdmin: Boolean!
+  createdAt: Time!
+  updatedAt: Time!
+  todos: [Todo!]
+}
+
+type Todo {
+  id: ID!
+  title: String!
+  description: String!
+  completed: Boolean!
+  userId: ID!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+input CreateUserInput {
+  email: String!
+  password: String!
+}
+
+input CreateTodoInput {
+  title: String!
+  description: String!
+}
+
+input UpdateTodoInput {
+  title: String
+  description: String
+  completed: Boolean
+}
+
+input UpdateUserAdminInput {
+  isAdmin: Boolean!
+}
+
+type Query {
+  user(id: ID!): User
+  userByEmail(email: String!): User
+  users: [User!]!
+  userCount: Int!
+  
+  todo(id: ID!, userId: ID!): Todo
+  todos(userId: ID!): [Todo!]!
+  todosByUser(userId: ID!): [Todo!]!
+}
+
+type Mutation {
+  createUser(input: CreateUserInput!): User!
+  deleteUser(id: ID!): Boolean!
+  updateUserAdmin(id: ID!, input: UpdateUserAdminInput!): User!
+  
+  createTodo(userId: ID!, input: CreateTodoInput!): Todo!
+  updateTodo(id: ID!, userId: ID!, input: UpdateTodoInput!): Todo!
+  deleteTodo(id: ID!, userId: ID!): Boolean!
+}

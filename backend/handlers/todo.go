@@ -1,10 +1,9 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
-	"todo-app/config"
-	"todo-app/models"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,9 +21,11 @@ type UpdateTodoInput struct {
 
 func GetTodos(c *gin.Context) {
 	userID, _ := c.Get("user_id")
+	ctx := context.Background()
 
-	var todos []models.Todo
-	if err := config.DB.Where("user_id = ?", userID).Order("created_at desc").Find(&todos).Error; err != nil {
+	userIDStr := strconv.FormatUint(uint64(userID.(uint)), 10)
+	todos, err := GQLClient.GetTodos(ctx, userIDStr)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch todos"})
 		return
 	}
@@ -34,14 +35,12 @@ func GetTodos(c *gin.Context) {
 
 func GetTodo(c *gin.Context) {
 	userID, _ := c.Get("user_id")
-	todoID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid todo ID"})
-		return
-	}
+	todoID := c.Param("id")
+	ctx := context.Background()
 
-	var todo models.Todo
-	if err := config.DB.Where("id = ? AND user_id = ?", todoID, userID).First(&todo).Error; err != nil {
+	userIDStr := strconv.FormatUint(uint64(userID.(uint)), 10)
+	todo, err := GQLClient.GetTodo(ctx, todoID, userIDStr)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Todo not found"})
 		return
 	}
@@ -51,6 +50,7 @@ func GetTodo(c *gin.Context) {
 
 func CreateTodo(c *gin.Context) {
 	userID, _ := c.Get("user_id")
+	ctx := context.Background()
 
 	var input CreateTodoInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -58,13 +58,9 @@ func CreateTodo(c *gin.Context) {
 		return
 	}
 
-	todo := models.Todo{
-		Title:       input.Title,
-		Description: input.Description,
-		UserID:      userID.(uint),
-	}
-
-	if err := config.DB.Create(&todo).Error; err != nil {
+	userIDStr := strconv.FormatUint(uint64(userID.(uint)), 10)
+	todo, err := GQLClient.CreateTodo(ctx, userIDStr, input.Title, input.Description)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create todo"})
 		return
 	}
@@ -74,17 +70,8 @@ func CreateTodo(c *gin.Context) {
 
 func UpdateTodo(c *gin.Context) {
 	userID, _ := c.Get("user_id")
-	todoID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid todo ID"})
-		return
-	}
-
-	var todo models.Todo
-	if err := config.DB.Where("id = ? AND user_id = ?", todoID, userID).First(&todo).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Todo not found"})
-		return
-	}
+	todoID := c.Param("id")
+	ctx := context.Background()
 
 	var input UpdateTodoInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -92,18 +79,19 @@ func UpdateTodo(c *gin.Context) {
 		return
 	}
 
+	userIDStr := strconv.FormatUint(uint64(userID.(uint)), 10)
+
+	var title, description *string
 	if input.Title != "" {
-		todo.Title = input.Title
+		title = &input.Title
 	}
 	if input.Description != "" {
-		todo.Description = input.Description
-	}
-	if input.Completed != nil {
-		todo.Completed = *input.Completed
+		description = &input.Description
 	}
 
-	if err := config.DB.Save(&todo).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update todo"})
+	todo, err := GQLClient.UpdateTodo(ctx, todoID, userIDStr, title, description, input.Completed)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Todo not found"})
 		return
 	}
 
@@ -112,20 +100,13 @@ func UpdateTodo(c *gin.Context) {
 
 func DeleteTodo(c *gin.Context) {
 	userID, _ := c.Get("user_id")
-	todoID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid todo ID"})
-		return
-	}
+	todoID := c.Param("id")
+	ctx := context.Background()
 
-	var todo models.Todo
-	if err := config.DB.Where("id = ? AND user_id = ?", todoID, userID).First(&todo).Error; err != nil {
+	userIDStr := strconv.FormatUint(uint64(userID.(uint)), 10)
+	deleted, err := GQLClient.DeleteTodo(ctx, todoID, userIDStr)
+	if err != nil || !deleted {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Todo not found"})
-		return
-	}
-
-	if err := config.DB.Delete(&todo).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete todo"})
 		return
 	}
 

@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"todo-app/config"
+	"todo-app/graph"
 	"todo-app/handlers"
 	"todo-app/middleware"
 	"todo-app/models"
@@ -18,6 +19,11 @@ func main() {
 		log.Fatal("Failed to migrate database:", err)
 	}
 	log.Println("Database migrated successfully")
+
+	resolver := graph.NewResolver(config.DB)
+	gqlClient := graph.NewClient(resolver)
+	handlers.InitGraphQLClient(gqlClient)
+	log.Println("GraphQL layer initialized successfully")
 
 	r := gin.Default()
 

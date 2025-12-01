@@ -13,9 +13,15 @@ A full-stack TODO management application with user authentication and admin user
 /
 ├── backend/           # Go backend API server
 │   ├── config/       # Database configuration
-│   ├── handlers/     # API route handlers
+│   ├── graph/        # GraphQL layer (gqlgen)
+│   │   ├── schema.graphqls  # GraphQL schema
+│   │   ├── resolver.go      # Resolver initialization
+│   │   ├── schema.resolvers.go  # Query/Mutation resolvers
+│   │   ├── client.go        # GraphQL client for REST handlers
+│   │   └── model/           # Generated models
+│   ├── handlers/     # REST API route handlers (use GraphQL)
 │   ├── middleware/   # Authentication middleware
-│   ├── models/       # Database models
+│   ├── models/       # Database models (GORM)
 │   └── main.go       # Entry point
 ├── frontend/          # Next.js frontend
 │   ├── app/          # App Router pages
@@ -102,7 +108,20 @@ docker-compose -f docker-compose.dev.yml up --build
 ## Admin Bootstrap
 The first user to register automatically receives admin privileges.
 
+## Architecture
+
+### GraphQL Layer
+The backend uses gqlgen to provide a GraphQL layer between REST handlers and the database:
+- **Schema**: Defines User, Todo types and Query/Mutation operations
+- **Resolvers**: Implement all database operations via GORM
+- **Client**: Provides a clean interface for REST handlers to call GraphQL operations
+
+```
+REST Handler → GraphQL Client → GraphQL Resolver → GORM → PostgreSQL
+```
+
 ## Recent Changes
 - Initial project setup (November 28, 2025)
 - Added security improvements: SESSION_SECRET validation, JWT signing method verification
 - Added Docker Compose support for local development (November 28, 2025)
+- Added GraphQL layer (gqlgen) for database operations (December 1, 2025)
