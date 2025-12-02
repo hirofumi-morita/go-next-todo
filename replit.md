@@ -142,3 +142,7 @@ REST Handler → GraphQL Client → GraphQL Resolver → GORM → PostgreSQL
 - Added GraphQL layer (gqlgen) for database operations (December 1, 2025)
 - Updated Docker Compose to support GraphQL code generation (December 1, 2025)
 - Added Group feature for organizing TODOs (December 2, 2025)
+- Fixed authorization vulnerabilities in group operations (December 2, 2025):
+  - CreateTodo/UpdateTodo now verify group ownership before assignment
+  - DeleteGroup now verifies ownership before unlinking todos
+  - Frontend only sends group_id when explicitly changed
