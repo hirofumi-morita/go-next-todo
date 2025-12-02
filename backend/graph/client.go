@@ -1,87 +1,122 @@
 package graph
 
 import (
-	"context"
-	"todo-app/graph/model"
-	"todo-app/models"
+        "context"
+        "todo-app/graph/model"
+        "todo-app/models"
 )
 
 type Client struct {
-	resolver *Resolver
+        resolver *Resolver
 }
 
 func NewClient(resolver *Resolver) *Client {
-	return &Client{resolver: resolver}
+        return &Client{resolver: resolver}
 }
 
 func (c *Client) CreateUser(ctx context.Context, email, password string) (*models.User, error) {
-	mutation := &mutationResolver{c.resolver}
-	return mutation.CreateUser(ctx, model.CreateUserInput{
-		Email:    email,
-		Password: password,
-	})
+        mutation := &mutationResolver{c.resolver}
+        return mutation.CreateUser(ctx, model.CreateUserInput{
+                Email:    email,
+                Password: password,
+        })
 }
 
 func (c *Client) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
-	query := &queryResolver{c.resolver}
-	return query.UserByEmail(ctx, email)
+        query := &queryResolver{c.resolver}
+        return query.UserByEmail(ctx, email)
 }
 
 func (c *Client) GetUserByID(ctx context.Context, id string) (*models.User, error) {
-	query := &queryResolver{c.resolver}
-	return query.User(ctx, id)
+        query := &queryResolver{c.resolver}
+        return query.User(ctx, id)
 }
 
 func (c *Client) GetUsers(ctx context.Context) ([]*models.User, error) {
-	query := &queryResolver{c.resolver}
-	return query.Users(ctx)
+        query := &queryResolver{c.resolver}
+        return query.Users(ctx)
 }
 
 func (c *Client) DeleteUser(ctx context.Context, id string) (bool, error) {
-	mutation := &mutationResolver{c.resolver}
-	return mutation.DeleteUser(ctx, id)
+        mutation := &mutationResolver{c.resolver}
+        return mutation.DeleteUser(ctx, id)
 }
 
 func (c *Client) UpdateUserAdmin(ctx context.Context, id string, isAdmin bool) (*models.User, error) {
-	mutation := &mutationResolver{c.resolver}
-	return mutation.UpdateUserAdmin(ctx, id, model.UpdateUserAdminInput{
-		IsAdmin: isAdmin,
-	})
+        mutation := &mutationResolver{c.resolver}
+        return mutation.UpdateUserAdmin(ctx, id, model.UpdateUserAdminInput{
+                IsAdmin: isAdmin,
+        })
 }
 
 func (c *Client) GetUserCount(ctx context.Context) (int, error) {
-	query := &queryResolver{c.resolver}
-	return query.UserCount(ctx)
+        query := &queryResolver{c.resolver}
+        return query.UserCount(ctx)
 }
 
-func (c *Client) CreateTodo(ctx context.Context, userID, title, description string) (*models.Todo, error) {
-	mutation := &mutationResolver{c.resolver}
-	return mutation.CreateTodo(ctx, userID, model.CreateTodoInput{
-		Title:       title,
-		Description: description,
-	})
+func (c *Client) CreateTodo(ctx context.Context, userID, title, description string, groupID *string) (*models.Todo, error) {
+        mutation := &mutationResolver{c.resolver}
+        return mutation.CreateTodo(ctx, userID, model.CreateTodoInput{
+                Title:       title,
+                Description: description,
+                GroupID:     groupID,
+        })
 }
 
 func (c *Client) GetTodos(ctx context.Context, userID string) ([]*models.Todo, error) {
-	query := &queryResolver{c.resolver}
-	return query.Todos(ctx, userID)
+        query := &queryResolver{c.resolver}
+        return query.Todos(ctx, userID)
 }
 
 func (c *Client) GetTodo(ctx context.Context, id, userID string) (*models.Todo, error) {
-	query := &queryResolver{c.resolver}
-	return query.Todo(ctx, id, userID)
+        query := &queryResolver{c.resolver}
+        return query.Todo(ctx, id, userID)
 }
 
-func (c *Client) UpdateTodo(ctx context.Context, id, userID string, title, description *string, completed *bool) (*models.Todo, error) {
-	mutation := &mutationResolver{c.resolver}
-	return mutation.UpdateTodo(ctx, id, userID, model.UpdateTodoInput{
-		Title:       title,
-		Description: description,
-		Completed:   completed,
-	})
+func (c *Client) UpdateTodo(ctx context.Context, id, userID string, title, description *string, completed *bool, groupID *string) (*models.Todo, error) {
+        mutation := &mutationResolver{c.resolver}
+        return mutation.UpdateTodo(ctx, id, userID, model.UpdateTodoInput{
+                Title:       title,
+                Description: description,
+                Completed:   completed,
+                GroupID:     groupID,
+        })
 }
 
 func (c *Client) DeleteTodo(ctx context.Context, id, userID string) (bool, error) {
-	mutation := &mutationResolver{c.resolver}
-	return mutation.DeleteTodo(ctx, id, userID)
+        mutation := &mutationResolver{c.resolver}
+        return mutation.DeleteTodo(ctx, id, userID)
+}
+
+func (c *Client) CreateGroup(ctx context.Context, userID, name string, description, color *string) (*models.Group, error) {
+        mutation := &mutationResolver{c.resolver}
+        return mutation.CreateGroup(ctx, userID, model.CreateGroupInput{
+                Name:        name,
+                Description: description,
+                Color:       color,
+        })
+}
+
+func (c *Client) GetGroups(ctx context.Context, userID string) ([]*models.Group, error) {
+        query := &queryResolver{c.resolver}
+        return query.Groups(ctx, userID)
+}
+
+func (c *Client) GetGroup(ctx context.Context, id, userID string) (*models.Group, error) {
+        query := &queryResolver{c.resolver}
+        return query.Group(ctx, id, userID)
+}
+
+func (c *Client) UpdateGroup(ctx context.Context, id, userID string, name, description, color *string) (*models.Group, error) {
+        mutation := &mutationResolver{c.resolver}
+        return mutation.UpdateGroup(ctx, id, userID, model.UpdateGroupInput{
+                Name:        name,
+                Description: description,
+                Color:       color,
+        })
+}
+
+func (c *Client) DeleteGroup(ctx context.Context, id, userID string) (bool, error) {
+        mutation := &mutationResolver{c.resolver}
+        return mutation.DeleteGroup(ctx, id, userID)
 }
