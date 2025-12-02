@@ -23,15 +23,6 @@ func (r *groupResolver) UserID(ctx context.Context, obj *models.Group) (string, 
         return strconv.FormatUint(uint64(obj.UserID), 10), nil
 }
 
-// Todos is the resolver for the todos field.
-func (r *groupResolver) Todos(ctx context.Context, obj *models.Group) ([]*models.Todo, error) {
-        var todos []*models.Todo
-        if err := r.DB.Where("group_id = ?", obj.ID).Find(&todos).Error; err != nil {
-                return nil, fmt.Errorf("failed to fetch todos: %w", err)
-        }
-        return todos, nil
-}
-
 // CreateUser is the resolver for the createUser field.
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.CreateUserInput) (*models.User, error) {
         user := &models.User{
@@ -112,10 +103,14 @@ func (r *mutationResolver) CreateTodo(ctx context.Context, userID string, input 
                 UserID:      uint(uid),
         }
 
-        if input.GroupID != nil {
+        if input.GroupID != nil && *input.GroupID != "" {
                 gid, err := strconv.ParseUint(*input.GroupID, 10, 64)
                 if err != nil {
                         return nil, fmt.Errorf("invalid group ID: %w", err)
+                }
+                var group models.Group
+                if err := r.DB.Where("id = ? AND user_id = ?", gid, uid).First(&group).Error; err != nil {
+                        return nil, fmt.Errorf("group not found or not owned by user")
                 }
                 groupID := uint(gid)
                 todo.GroupID = &groupID
@@ -161,6 +156,10 @@ func (r *mutationResolver) UpdateTodo(ctx context.Context, id string, userID str
                         gid, err := strconv.ParseUint(*input.GroupID, 10, 64)
                         if err != nil {
                                 return nil, fmt.Errorf("invalid group ID: %w", err)
+                        }
+                        var group models.Group
+                        if err := r.DB.Where("id = ? AND user_id = ?", gid, uid).First(&group).Error; err != nil {
+                                return nil, fmt.Errorf("group not found or not owned by user")
                         }
                         groupID := uint(gid)
                         todo.GroupID = &groupID
@@ -266,11 +265,16 @@ func (r *mutationResolver) DeleteGroup(ctx context.Context, id string, userID st
                 return false, fmt.Errorf("invalid user ID: %w", err)
         }
 
-        if err := r.DB.Model(&models.Todo{}).Where("group_id = ?", groupID).Update("group_id", nil).Error; err != nil {
+        var group models.Group
+        if err := r.DB.Where("id = ? AND user_id = ?", groupID, uid).First(&group).Error; err != nil {
+                return false, fmt.Errorf("group not found or not owned by user")
+        }
+
+        if err := r.DB.Model(&models.Todo{}).Where("group_id = ? AND user_id = ?", groupID, uid).Update("group_id", nil).Error; err != nil {
                 return false, fmt.Errorf("failed to unlink todos from group: %w", err)
         }
 
-        result := r.DB.Where("id = ? AND user_id = ?", groupID, uid).Delete(&models.Group{})
+        result := r.DB.Delete(&group)
         if result.Error != nil {
                 return false, fmt.Errorf("failed to delete group: %w", result.Error)
         }
@@ -463,3 +467,19 @@ type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type todoResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+/*
+        func (r *groupResolver) Todos(ctx context.Context, obj *models.Group) ([]*models.Todo, error) {
+        var todos []*models.Todo
+        if err := r.DB.Where("group_id = ?", obj.ID).Find(&todos).Error; err != nil {
+                return nil, fmt.Errorf("failed to fetch todos: %w", err)
+        }
+        return todos, nil
+}
+*/

@@ -3,20 +3,32 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { todoApi, Todo } from '@/lib/api';
+import { todoApi, groupApi, Todo, Group } from '@/lib/api';
 import Navbar from '@/components/Navbar';
 
 export default function DashboardPage() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [todos, setTodos] = useState<Todo[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
+  const [newGroupId, setNewGroupId] = useState<number | undefined>(undefined);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
+  const [editGroupId, setEditGroupId] = useState<number | null>(null);
   const [error, setError] = useState('');
+  const [filterGroup, setFilterGroup] = useState<number | 'all' | 'ungrouped'>('all');
+  const [showGroupManager, setShowGroupManager] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupDescription, setNewGroupDescription] = useState('');
+  const [newGroupColor, setNewGroupColor] = useState('#3B82F6');
+  const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
+  const [editGroupName, setEditGroupName] = useState('');
+  const [editGroupDescription, setEditGroupDescription] = useState('');
+  const [editGroupColor, setEditGroupColor] = useState('');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -26,18 +38,23 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (user) {
-      fetchTodos();
+      fetchData();
     }
   }, [user]);
 
-  const fetchTodos = async () => {
-    const { data, error } = await todoApi.getAll();
-    if (data) {
-      setTodos(data.todos || []);
+  const fetchData = async () => {
+    const [todosRes, groupsRes] = await Promise.all([
+      todoApi.getAll(),
+      groupApi.getAll(),
+    ]);
+    if (todosRes.data) {
+      setTodos(todosRes.data.todos || []);
     }
-    if (error) {
-      setError(error);
+    if (groupsRes.data) {
+      setGroups(groupsRes.data.groups || []);
     }
+    if (todosRes.error) setError(todosRes.error);
+    if (groupsRes.error) setError(groupsRes.error);
     setIsLoading(false);
   };
 
@@ -45,11 +62,12 @@ export default function DashboardPage() {
     e.preventDefault();
     if (!newTitle.trim()) return;
 
-    const { data, error } = await todoApi.create(newTitle, newDescription);
+    const { data, error } = await todoApi.create(newTitle, newDescription, newGroupId);
     if (data) {
       setTodos([data.todo, ...todos]);
       setNewTitle('');
       setNewDescription('');
+      setNewGroupId(undefined);
     }
     if (error) {
       setError(error);
@@ -81,13 +99,24 @@ export default function DashboardPage() {
     setEditingId(todo.id);
     setEditTitle(todo.title);
     setEditDescription(todo.description);
+    setEditGroupId(todo.group_id ?? null);
   };
 
   const handleUpdate = async (id: number) => {
-    const { data, error } = await todoApi.update(id, {
+    const currentTodo = todos.find((t) => t.id === id);
+    const currentGroupId = currentTodo?.group_id ?? null;
+    const groupChanged = editGroupId !== currentGroupId;
+    
+    const updateData: { title: string; description: string; group_id?: string | null } = {
       title: editTitle,
       description: editDescription,
-    });
+    };
+    
+    if (groupChanged) {
+      updateData.group_id = editGroupId === null ? '' : String(editGroupId);
+    }
+    
+    const { data, error } = await todoApi.update(id, updateData);
     if (data) {
       setTodos(todos.map((t) => (t.id === id ? data.todo : t)));
       setEditingId(null);
@@ -95,6 +124,72 @@ export default function DashboardPage() {
     if (error) {
       setError(error);
     }
+  };
+
+  const handleCreateGroup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newGroupName.trim()) return;
+
+    const { data, error } = await groupApi.create(newGroupName, newGroupDescription, newGroupColor);
+    if (data) {
+      setGroups([...groups, data.group]);
+      setNewGroupName('');
+      setNewGroupDescription('');
+      setNewGroupColor('#3B82F6');
+    }
+    if (error) {
+      setError(error);
+    }
+  };
+
+  const handleEditGroup = (group: Group) => {
+    setEditingGroupId(group.id);
+    setEditGroupName(group.name);
+    setEditGroupDescription(group.description);
+    setEditGroupColor(group.color);
+  };
+
+  const handleUpdateGroup = async (id: number) => {
+    const { data, error } = await groupApi.update(id, {
+      name: editGroupName,
+      description: editGroupDescription,
+      color: editGroupColor,
+    });
+    if (data) {
+      setGroups(groups.map((g) => (g.id === id ? data.group : g)));
+      setEditingGroupId(null);
+    }
+    if (error) {
+      setError(error);
+    }
+  };
+
+  const handleDeleteGroup = async (id: number) => {
+    const { error } = await groupApi.delete(id);
+    if (!error) {
+      setGroups(groups.filter((g) => g.id !== id));
+      setTodos(todos.map((t) => (t.group_id === id ? { ...t, group_id: null } : t)));
+    } else {
+      setError(error);
+    }
+  };
+
+  const filteredTodos = todos.filter((todo) => {
+    if (filterGroup === 'all') return true;
+    if (filterGroup === 'ungrouped') return !todo.group_id;
+    return todo.group_id === filterGroup;
+  });
+
+  const getGroupColor = (groupId: number | null | undefined) => {
+    if (!groupId) return undefined;
+    const group = groups.find((g) => g.id === groupId);
+    return group?.color;
+  };
+
+  const getGroupName = (groupId: number | null | undefined) => {
+    if (!groupId) return null;
+    const group = groups.find((g) => g.id === groupId);
+    return group?.name;
   };
 
   if (authLoading || isLoading) {
@@ -109,12 +204,119 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-100">
       <Navbar />
       <main className="max-w-4xl mx-auto py-8 px-4">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">My TODOs</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">My TODOs</h1>
+          <button
+            onClick={() => setShowGroupManager(!showGroupManager)}
+            className="bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700"
+          >
+            {showGroupManager ? 'Hide Groups' : 'Manage Groups'}
+          </button>
+        </div>
 
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             {error}
             <button onClick={() => setError('')} className="float-right">&times;</button>
+          </div>
+        )}
+
+        {showGroupManager && (
+          <div className="bg-white rounded-lg shadow p-6 mb-8">
+            <h2 className="text-lg font-semibold mb-4">Groups</h2>
+            <form onSubmit={handleCreateGroup} className="flex gap-2 mb-4">
+              <input
+                type="text"
+                placeholder="Group name"
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                required
+              />
+              <input
+                type="text"
+                placeholder="Description"
+                value={newGroupDescription}
+                onChange={(e) => setNewGroupDescription(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+              <input
+                type="color"
+                value={newGroupColor}
+                onChange={(e) => setNewGroupColor(e.target.value)}
+                className="w-12 h-10 border border-gray-300 rounded-md cursor-pointer"
+              />
+              <button
+                type="submit"
+                className="bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700"
+              >
+                Add
+              </button>
+            </form>
+            <div className="space-y-2">
+              {groups.map((group) => (
+                <div key={group.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                  {editingGroupId === group.id ? (
+                    <>
+                      <input
+                        type="text"
+                        value={editGroupName}
+                        onChange={(e) => setEditGroupName(e.target.value)}
+                        className="flex-1 px-2 py-1 border border-gray-300 rounded"
+                      />
+                      <input
+                        type="text"
+                        value={editGroupDescription}
+                        onChange={(e) => setEditGroupDescription(e.target.value)}
+                        className="flex-1 px-2 py-1 border border-gray-300 rounded"
+                      />
+                      <input
+                        type="color"
+                        value={editGroupColor}
+                        onChange={(e) => setEditGroupColor(e.target.value)}
+                        className="w-10 h-8 border border-gray-300 rounded cursor-pointer"
+                      />
+                      <button
+                        onClick={() => handleUpdateGroup(group.id)}
+                        className="text-green-600 hover:text-green-800"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setEditingGroupId(null)}
+                        className="text-gray-600 hover:text-gray-800"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <div
+                        className="w-4 h-4 rounded-full"
+                        style={{ backgroundColor: group.color }}
+                      />
+                      <span className="flex-1 font-medium">{group.name}</span>
+                      <span className="text-gray-500 text-sm">{group.description}</span>
+                      <button
+                        onClick={() => handleEditGroup(group)}
+                        className="text-blue-500 hover:text-blue-700 text-sm"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteGroup(group.id)}
+                        className="text-red-500 hover:text-red-700 text-sm"
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
+                </div>
+              ))}
+              {groups.length === 0 && (
+                <p className="text-gray-500 text-center py-2">No groups yet</p>
+              )}
+            </div>
           </div>
         )}
 
@@ -136,6 +338,18 @@ export default function DashboardPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               rows={2}
             />
+            <select
+              value={newGroupId ?? ''}
+              onChange={(e) => setNewGroupId(e.target.value ? Number(e.target.value) : undefined)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">No Group</option>
+              {groups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
             <button
               type="submit"
               className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
@@ -145,16 +359,60 @@ export default function DashboardPage() {
           </div>
         </form>
 
+        <div className="mb-4 flex gap-2 flex-wrap">
+          <button
+            onClick={() => setFilterGroup('all')}
+            className={`px-3 py-1 rounded-full text-sm ${
+              filterGroup === 'all'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            All
+          </button>
+          <button
+            onClick={() => setFilterGroup('ungrouped')}
+            className={`px-3 py-1 rounded-full text-sm ${
+              filterGroup === 'ungrouped'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            Ungrouped
+          </button>
+          {groups.map((group) => (
+            <button
+              key={group.id}
+              onClick={() => setFilterGroup(group.id)}
+              className={`px-3 py-1 rounded-full text-sm flex items-center gap-1 ${
+                filterGroup === group.id
+                  ? 'text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+              style={filterGroup === group.id ? { backgroundColor: group.color } : undefined}
+            >
+              <div
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: group.color }}
+              />
+              {group.name}
+            </button>
+          ))}
+        </div>
+
         <div className="space-y-4">
-          {todos.length === 0 ? (
+          {filteredTodos.length === 0 ? (
             <p className="text-gray-500 text-center py-8">No TODOs yet. Add one above!</p>
           ) : (
-            todos.map((todo) => (
+            filteredTodos.map((todo) => (
               <div
                 key={todo.id}
                 className={`bg-white rounded-lg shadow p-4 ${
                   todo.completed ? 'opacity-60' : ''
                 }`}
+                style={{
+                  borderLeft: todo.group_id ? `4px solid ${getGroupColor(todo.group_id)}` : undefined,
+                }}
               >
                 {editingId === todo.id ? (
                   <div className="space-y-3">
@@ -170,6 +428,18 @@ export default function DashboardPage() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md"
                       rows={2}
                     />
+                    <select
+                      value={editGroupId ?? ''}
+                      onChange={(e) => setEditGroupId(e.target.value ? Number(e.target.value) : null)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="">No Group</option>
+                      {groups.map((group) => (
+                        <option key={group.id} value={group.id}>
+                          {group.name}
+                        </option>
+                      ))}
+                    </select>
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleUpdate(todo.id)}
@@ -205,9 +475,19 @@ export default function DashboardPage() {
                         {todo.description && (
                           <p className="text-gray-600 text-sm mt-1">{todo.description}</p>
                         )}
-                        <p className="text-gray-400 text-xs mt-2">
-                          Created: {new Date(todo.created_at).toLocaleDateString()}
-                        </p>
+                        <div className="flex items-center gap-2 mt-2">
+                          {getGroupName(todo.group_id) && (
+                            <span
+                              className="text-xs px-2 py-0.5 rounded-full text-white"
+                              style={{ backgroundColor: getGroupColor(todo.group_id) }}
+                            >
+                              {getGroupName(todo.group_id)}
+                            </span>
+                          )}
+                          <p className="text-gray-400 text-xs">
+                            Created: {new Date(todo.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-2">

@@ -40,9 +40,17 @@ A full-stack TODO management application with user authentication and admin user
 2. **TODO Management (CRUD)**
    - Create, Read, Update, Delete TODOs
    - Mark TODOs as complete/incomplete
+   - Assign TODOs to groups
+   - Filter TODOs by group
    - Each user sees only their own TODOs
 
-3. **Admin User Management**
+3. **Group Management**
+   - Create, Read, Update, Delete groups
+   - Custom group colors
+   - Group descriptions
+   - TODOs can be assigned to groups
+
+4. **Admin User Management**
    - View all users
    - Delete users
    - Grant/revoke admin privileges
@@ -59,9 +67,16 @@ A full-stack TODO management application with user authentication and admin user
 ### TODO Routes
 - `GET /api/todos` - Get all TODOs for user
 - `GET /api/todos/:id` - Get specific TODO
-- `POST /api/todos` - Create new TODO
-- `PUT /api/todos/:id` - Update TODO
+- `POST /api/todos` - Create new TODO (with optional group_id)
+- `PUT /api/todos/:id` - Update TODO (including group assignment)
 - `DELETE /api/todos/:id` - Delete TODO
+
+### Group Routes
+- `GET /api/groups` - Get all groups for user
+- `GET /api/groups/:id` - Get specific group
+- `POST /api/groups` - Create new group (name, description, color)
+- `PUT /api/groups/:id` - Update group
+- `DELETE /api/groups/:id` - Delete group (unlinks TODOs from group)
 
 ### Admin Routes (require admin role)
 - `GET /api/admin/users` - Get all users
@@ -112,7 +127,7 @@ The first user to register automatically receives admin privileges.
 
 ### GraphQL Layer
 The backend uses gqlgen to provide a GraphQL layer between REST handlers and the database:
-- **Schema**: Defines User, Todo types and Query/Mutation operations
+- **Schema**: Defines User, Todo, Group types and Query/Mutation operations
 - **Resolvers**: Implement all database operations via GORM
 - **Client**: Provides a clean interface for REST handlers to call GraphQL operations
 
@@ -126,3 +141,4 @@ REST Handler → GraphQL Client → GraphQL Resolver → GORM → PostgreSQL
 - Added Docker Compose support for local development (November 28, 2025)
 - Added GraphQL layer (gqlgen) for database operations (December 1, 2025)
 - Updated Docker Compose to support GraphQL code generation (December 1, 2025)
+- Added Group feature for organizing TODOs (December 2, 2025)

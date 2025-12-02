@@ -56,13 +56,13 @@ export const todoApi = {
 
   get: (id: number) => request<{ todo: Todo }>(`/todos/${id}`),
 
-  create: (title: string, description: string) =>
+  create: (title: string, description: string, groupId?: number) =>
     request<{ todo: Todo }>('/todos', {
       method: 'POST',
-      body: JSON.stringify({ title, description }),
+      body: JSON.stringify({ title, description, group_id: groupId ? String(groupId) : undefined }),
     }),
 
-  update: (id: number, data: Partial<Todo>) =>
+  update: (id: number, data: Partial<Todo> & { group_id?: string | null }) =>
     request<{ todo: Todo }>(`/todos/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -70,6 +70,29 @@ export const todoApi = {
 
   delete: (id: number) =>
     request<{ message: string }>(`/todos/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
+export const groupApi = {
+  getAll: () => request<{ groups: Group[] }>('/groups'),
+
+  get: (id: number) => request<{ group: Group }>(`/groups/${id}`),
+
+  create: (name: string, description?: string, color?: string) =>
+    request<{ group: Group }>('/groups', {
+      method: 'POST',
+      body: JSON.stringify({ name, description, color }),
+    }),
+
+  update: (id: number, data: Partial<Group>) =>
+    request<{ group: Group }>(`/groups/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  delete: (id: number) =>
+    request<{ message: string }>(`/groups/${id}`, {
       method: 'DELETE',
     }),
 };
@@ -99,12 +122,24 @@ export interface User {
   todos?: Todo[];
 }
 
+export interface Group {
+  id: number;
+  name: string;
+  description: string;
+  color: string;
+  user_id: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Todo {
   id: number;
   title: string;
   description: string;
   completed: boolean;
   user_id: number;
+  group_id?: number | null;
+  group?: Group | null;
   created_at: string;
   updated_at: string;
 }
