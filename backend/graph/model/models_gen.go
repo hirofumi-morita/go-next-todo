@@ -2,9 +2,16 @@
 
 package model
 
+type CreateGroupInput struct {
+	Name        string  `json:"name"`
+	Description *string `json:"description,omitempty"`
+	Color       *string `json:"color,omitempty"`
+}
+
 type CreateTodoInput struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	GroupID     *string `json:"groupId,omitempty"`
 }
 
 type CreateUserInput struct {
@@ -18,10 +25,17 @@ type Mutation struct {
 type Query struct {
 }
 
+type UpdateGroupInput struct {
+	Name        *string `json:"name,omitempty"`
+	Description *string `json:"description,omitempty"`
+	Color       *string `json:"color,omitempty"`
+}
+
 type UpdateTodoInput struct {
 	Title       *string `json:"title,omitempty"`
 	Description *string `json:"description,omitempty"`
 	Completed   *bool   `json:"completed,omitempty"`
+	GroupID     *string `json:"groupId,omitempty"`
 }
 
 type UpdateUserAdminInput struct {

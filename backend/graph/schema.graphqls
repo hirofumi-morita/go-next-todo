@@ -7,6 +7,18 @@ type User {
   createdAt: Time!
   updatedAt: Time!
   todos: [Todo!]
+  groups: [Group!]
+}
+
+type Group {
+  id: ID!
+  name: String!
+  description: String!
+  color: String!
+  userId: ID!
+  createdAt: Time!
+  updatedAt: Time!
+  todos: [Todo!]
 }
 
 type Todo {
@@ -15,8 +27,10 @@ type Todo {
   description: String!
   completed: Boolean!
   userId: ID!
+  groupId: ID
   createdAt: Time!
   updatedAt: Time!
+  group: Group
 }
 
 input CreateUserInput {
@@ -24,15 +38,29 @@ input CreateUserInput {
   password: String!
 }
 
+input CreateGroupInput {
+  name: String!
+  description: String
+  color: String
+}
+
+input UpdateGroupInput {
+  name: String
+  description: String
+  color: String
+}
+
 input CreateTodoInput {
   title: String!
   description: String!
+  groupId: ID
 }
 
 input UpdateTodoInput {
   title: String
   description: String
   completed: Boolean
+  groupId: ID
 }
 
 input UpdateUserAdminInput {
@@ -48,6 +76,9 @@ type Query {
   todo(id: ID!, userId: ID!): Todo
   todos(userId: ID!): [Todo!]!
   todosByUser(userId: ID!): [Todo!]!
+  
+  group(id: ID!, userId: ID!): Group
+  groups(userId: ID!): [Group!]!
 }
 
 type Mutation {
@@ -58,4 +89,8 @@ type Mutation {
   createTodo(userId: ID!, input: CreateTodoInput!): Todo!
   updateTodo(id: ID!, userId: ID!, input: UpdateTodoInput!): Todo!
   deleteTodo(id: ID!, userId: ID!): Boolean!
+  
+  createGroup(userId: ID!, input: CreateGroupInput!): Group!
+  updateGroup(id: ID!, userId: ID!, input: UpdateGroupInput!): Group!
+  deleteGroup(id: ID!, userId: ID!): Boolean!
 }
